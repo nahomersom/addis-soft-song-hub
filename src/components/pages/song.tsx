@@ -9,6 +9,10 @@ import TextField from "../shared/TextField";
 import { RootState } from "../../redux/store/store";
 import { CREATE_SONG, UPDATE_SONG_BY_ID } from "../../redux/types/reduxTypes";
 
+import { useEffect } from "react";
+import { resetErrorState, resetSuccessState } from "../../redux/data/SongSlice";
+
+
 const Container = styled.div`
   display: flex;
   justify-content: center;
@@ -26,8 +30,8 @@ const FormHolder = styled.div`
   }
 `;
 
-const initialValue: SongResponse = {
-  _id: "",
+const initialValue = {
+
   title: "",
   artist: "",
   album: "",
@@ -38,45 +42,40 @@ const Song = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const params = useParams();
-  
-  // Select songs from the Redux store
-  const songs = useSelector((state: RootState) => state.songs.songs);
 
-  // Ensure songs is an array
-  const songList = Array.isArray(songs) ? songs : [];
+  const { songs, isPending, isSuccess, error } = useSelector((state: RootState) => state.songs);
 
-  // Filter the song by id if `params.id` exists
-  const existingSongs = params.id ? songList.filter(song => song._id === params.id) : [];
+  const existingSong = params.id ? songs.find(song => song._id === params.id) : null;
 
-  const [values, setValues] = useState<SongResponse>(
-    existingSongs[0] ?? initialValue
-  );
+  const [values, setValues] = useState(existingSong || initialValue);
+
+  useEffect(() => {
+    if (isSuccess) {
+      alert("Song successfully created/updated!");
+      navigate('/');
+      dispatch(resetSuccessState());  // Reset success state after navigation
+    }
+  }, [isSuccess, navigate, dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      alert(`Error: ${error}`);
+      dispatch(resetErrorState());  // Reset error state after showing the error
+    }
+  }, [error, dispatch]);
 
   const handleFormSubmit = () => {
-    if (params.id && existingSongs.length > 0) {
+    if (params.id) {
       dispatch({
         type: UPDATE_SONG_BY_ID,
-        payload: {
-          _id: params.id,
-          title: values.title,
-          artist: values.artist,
-          genre: values.genre,
-          album: values.album,
-        },
+        payload: values,
       });
     } else {
       dispatch({
         type: CREATE_SONG,
-        payload: {
-          title: values.title,
-          artist: values.artist,
-          genre: values.genre,
-          album: values.album,
-        },
+        payload: values,
       });
     }
-    setValues(initialValue);
-    navigate('/');
   };
 
   return (
@@ -84,45 +83,52 @@ const Song = () => {
       <Wrapper>
         <FormHolder>
           <h2>{params.id ? 'Edit Song' : 'Add a new Song'}</h2>
-          <TextField
-            label="Title"
-            value={values.title}
-            onChange={(e) => setValues({ ...values, title: e.target.value })}
-            props={{
-              placeholder: 'Song Title',
-            }}
-          />
-          <TextField
-            label="Artist"
-            value={values.artist}
-            onChange={(e) => setValues({ ...values, artist: e.target.value })}
-            props={{
-              placeholder: 'Artist Name',
-            }}
-          />
-          <TextField
-            label="Album"
-            value={values.album}
-            onChange={(e) => setValues({ ...values, album: e.target.value })}
-            props={{
-              placeholder: 'Album Name',
-            }}
-          />
-          <TextField
-            label="Genre"
-            value={values.genre}
-            onChange={(e) => setValues({ ...values, genre: e.target.value })}
-            props={{
-              placeholder: 'Genre',
-            }}
-          />
-          <SharedButton
-            label="Submit"
-            onClick={handleFormSubmit}
-            props={{
-              width: '5%',
-            }}
-          />
+
+          {isPending ? (
+            <p>Loading...</p>
+          ) : (
+            <>
+              <TextField
+                label="Title"
+                value={values.title}
+                onChange={(e) => setValues({ ...values, title: e.target.value })}
+                props={{
+                  placeholder: 'Song Title',
+                }}
+              />
+              <TextField
+                label="Artist"
+                value={values.artist}
+                onChange={(e) => setValues({ ...values, artist: e.target.value })}
+                props={{
+                  placeholder: 'Artist Name',
+                }}
+              />
+              <TextField
+                label="Album"
+                value={values.album}
+                onChange={(e) => setValues({ ...values, album: e.target.value })}
+                props={{
+                  placeholder: 'Album Name',
+                }}
+              />
+              <TextField
+                label="Genre"
+                value={values.genre}
+                onChange={(e) => setValues({ ...values, genre: e.target.value })}
+                props={{
+                  placeholder: 'Genre',
+                }}
+              />
+              <SharedButton
+                label="Submit"
+                onClick={handleFormSubmit}
+                props={{
+                  width: '5%',
+                }}
+              />
+            </>
+          )}
         </FormHolder>
       </Wrapper>
     </Container>
